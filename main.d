@@ -1,4 +1,5 @@
 import tango.io.Stdout;
+import tango.text.Util;
 
 import lex.lexer;
 import syntax.parser;
@@ -33,6 +34,10 @@ int main(char[][] args) {
 
   // Compile
   foreach(imp; imports) {
+    // Convert to path
+    imp = imp.replace('.', '/');
+    imp ~= ".d";
+
     Stdout(imp).newline;
   }
 
