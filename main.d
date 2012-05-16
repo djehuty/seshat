@@ -1,5 +1,6 @@
 import tango.io.Stdout;
 import tango.text.Util;
+import Path = tango.io.Path;
 
 import lex.lexer;
 import syntax.parser;
@@ -27,6 +28,8 @@ int main(char[][] args) {
     return -1;
   }
 
+  char[][] importPaths = args[2..$];
+
   // Pull dependencies from given file
   char[][] imports = getDependencies(args[1]);
 
@@ -38,7 +41,30 @@ int main(char[][] args) {
     imp = imp.replace('.', '/');
     imp ~= ".d";
 
-    Stdout(imp).newline;
+    // Determine location of .d or .di
+
+    bool fileExists = false;
+    foreach(path; importPaths) {
+      auto testPath = path ~ "/" ~ imp;
+      if (Path.exists(testPath)) {
+        fileExists = true;
+      }
+      else {
+        testPath ~= "i";
+        if (Path.exists(testPath)) {
+          fileExists = true;
+        }
+      }
+
+      if (fileExists) {
+        Stdout(testPath).newline;
+        break;
+      }
+    }
+
+    if (!fileExists) {
+      Stdout("Cannot find file for import ")(imp).newline;
+    }
   }
 
   return 0;
