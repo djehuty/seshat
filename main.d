@@ -1,6 +1,10 @@
+module main;
+
 import tango.io.Stdout;
 import tango.text.Util;
 import Path = tango.io.Path;
+
+import ast.module_node;
 
 import lex.lexer;
 import syntax.parser;
@@ -8,18 +12,40 @@ import logger;
 
 static const char[] USAGE = "Usage: seshat <main-d-file>";
 
-char[][] done;
+extern(C) int system(char* path);
+
+struct FileInfo {
+  char[] path;
+  char[] name;
+}
+
+FileInfo[] _done;
 
 bool hasDone(char[] path) {
-  foreach(p; done) {
-    if (p == path) {
+  foreach(p; _done) {
+    if (p.path == path) {
       return true;
     }
   }
   return false;
 }
 
-char[][] getDependencies(char[] path) {
+int link(char[] path) {
+  return system("ldc output/*.o -ofblah");
+}
+
+int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
+  char[] compileString = "ldc -c " ~ path ~ " -ofoutput/" ~ moduleName.replace('.', '-') ~ ".o ";
+
+  foreach(importPath; importPaths) {
+    compileString ~= "-I" ~ importPath ~ " ";
+  }
+
+  compileString ~= "\0";
+  return system(compileString.ptr);
+}
+
+ModuleNode parse(char[] path) {
   Stdout("Parsing ")(path)("...").newline;
 
   auto lex    = new Lexer(path);
@@ -27,12 +53,7 @@ char[][] getDependencies(char[] path) {
   auto parser = new Parser(lex);
   auto ast    = parser.parse(logger);
 
-  char[][] ret = [];
-  foreach(decl; ast.imports) {
-    ret ~= decl.moduleName;
-  }
-
-  return ret;
+  return ast;
 }
 
 void parseFile(char[] filePath, char[][] importPaths) {
@@ -40,15 +61,19 @@ void parseFile(char[] filePath, char[][] importPaths) {
     return;
   }
 
-  done ~= filePath;
-
   // Pull dependencies from given file
-  char[][] imports = getDependencies(filePath);
+  auto ast = parse(filePath);
+
+  FileInfo f;
+  f.path = filePath;
+  f.name = ast.name;
+  _done ~= f;
 
   // Query for implementations
 
   // Compile
-  foreach(imp; imports) {
+  foreach(importNode; ast.imports) {
+    char[] imp = importNode.moduleName;
     // Convert to path
     imp = imp.replace('.', '/');
     imp ~= ".d";
@@ -92,6 +117,17 @@ int main(char[][] args) {
   char[][] importPaths = args[2..$];
 
   parseFile(args[1], importPaths);
+
+  double p = 0.0;
+
+  foreach(size_t idx, file; _done) {
+    // Compile
+    p = (cast(double)idx+1) / cast(double)_done.length;
+    Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
+    compileFile(file.path, file.name, importPaths);
+  }
+
+  link("");
 
   return 0;
 }
