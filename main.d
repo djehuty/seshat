@@ -8,7 +8,20 @@ import logger;
 
 static const char[] USAGE = "Usage: seshat <main-d-file>";
 
+char[][] done;
+
+bool hasDone(char[] path) {
+  foreach(p; done) {
+    if (p == path) {
+      return true;
+    }
+  }
+  return false;
+}
+
 char[][] getDependencies(char[] path) {
+  Stdout("Parsing ")(path)("...").newline;
+
   auto lex    = new Lexer(path);
   auto logger = new Logger();
   auto parser = new Parser(lex);
@@ -22,16 +35,15 @@ char[][] getDependencies(char[] path) {
   return ret;
 }
 
-int main(char[][] args) {
-  if (args.length < 2) {
-    Stdout(USAGE).newline;
-    return -1;
+void parseFile(char[] filePath, char[][] importPaths) {
+  if (hasDone(filePath)) {
+    return;
   }
 
-  char[][] importPaths = args[2..$];
+  done ~= filePath;
 
   // Pull dependencies from given file
-  char[][] imports = getDependencies(args[1]);
+  char[][] imports = getDependencies(filePath);
 
   // Query for implementations
 
@@ -44,8 +56,9 @@ int main(char[][] args) {
     // Determine location of .d or .di
 
     bool fileExists = false;
+    char[] testPath = "";
     foreach(path; importPaths) {
-      auto testPath = path ~ "/" ~ imp;
+      testPath = path ~ "/" ~ imp;
       if (Path.exists(testPath)) {
         fileExists = true;
       }
@@ -57,7 +70,6 @@ int main(char[][] args) {
       }
 
       if (fileExists) {
-        Stdout(testPath).newline;
         break;
       }
     }
@@ -65,7 +77,21 @@ int main(char[][] args) {
     if (!fileExists) {
       Stdout("Cannot find file for import ")(imp).newline;
     }
+    else {
+      parseFile(testPath, importPaths);
+    }
   }
+}
+
+int main(char[][] args) {
+  if (args.length < 2) {
+    Stdout(USAGE).newline;
+    return -1;
+  }
+
+  char[][] importPaths = args[2..$];
+
+  parseFile(args[1], importPaths);
 
   return 0;
 }
