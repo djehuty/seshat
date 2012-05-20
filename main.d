@@ -3,6 +3,7 @@ module main;
 import tango.io.Stdout;
 import tango.text.Util;
 import Path = tango.io.Path;
+import tango.io.FilePath;
 
 import ast.module_node;
 
@@ -31,11 +32,22 @@ bool hasDone(char[] path) {
 }
 
 int link(char[] path) {
-  return system("ldc output/*.o -ofblah");
+  return system("ldc .seshat-build-cache/*.o -ofblah");
 }
 
 int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
-  char[] compileString = "ldc -c " ~ path ~ " -ofoutput/" ~ moduleName.replace('.', '-') ~ ".o ";
+  char[] outputPath = ".seshat-build-cache/" ~ moduleName.replace('.', '-') ~ ".o";
+
+  if (Path.exists(outputPath)) {
+    auto outputFile = new FilePath(outputPath);
+    auto sourceFile = new FilePath(path);
+
+    if (outputFile.modified > sourceFile.modified) {
+      return 0;
+    }
+  }
+
+  char[] compileString = "ldc -c " ~ path ~ " -of" ~ outputPath ~ " ";
 
   foreach(importPath; importPaths) {
     compileString ~= "-I" ~ importPath ~ " ";
