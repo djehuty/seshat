@@ -76,7 +76,7 @@ void findImplementation(ref FileInfo fileInfo, char[][] importPaths) {
   }
 
   char[] imp = fileInfo.name;
-  imp = imp.replace('.', '/');
+  imp = imp.dup.replace('.', '/');
   imp ~= ".d";
 
   // Determine location of .d or .di
