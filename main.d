@@ -25,7 +25,7 @@ FileInfo[] _done;
 
 bool hasDone(char[] path) {
   foreach(p; _done) {
-    if (p.path == path) {
+    if (p.path == path || p.implementationPath == path) {
       return true;
     }
   }
@@ -54,7 +54,6 @@ int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
   }
 
   compileString ~= "\0";
-  Stdout(compileString).newline;
   return system(compileString.ptr);
 }
 
@@ -70,6 +69,7 @@ ModuleNode parse(char[] path) {
 }
 
 void findImplementation(ref FileInfo fileInfo, char[][] importPaths) {
+  Stdout("Finding implementation for ")(fileInfo.name)("...").newline;
   if (fileInfo.path[$-2..$] == ".d") {
     fileInfo.implementationPath = fileInfo.path;
     return;
@@ -95,7 +95,9 @@ void findImplementation(ref FileInfo fileInfo, char[][] importPaths) {
     Stdout("Cannot find file for import ")(imp).newline;
   }
   else {
+    // We need to parse the imports for this file as well
     fileInfo.implementationPath = testPath;
+    parseFile(testPath, importPaths);
   }
 }
 
@@ -163,12 +165,16 @@ int main(char[][] args) {
 
   double p = 0.0;
 
-  foreach(size_t idx, file; _done) {
+  for(size_t idx = 0; idx < _done.length; idx++) {
     // Compile
-    p = (cast(double)idx+1) / cast(double)_done.length;
-    Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
+    auto file = _done[idx];
     findImplementation(_done[idx], importPaths);
     file = _done[idx];
+  }
+
+  foreach(size_t idx, file; _done) {
+    p = (cast(double)idx+1) / cast(double)_done.length;
+    Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
     compileFile(file.implementationPath, file.name, importPaths);
   }
 
