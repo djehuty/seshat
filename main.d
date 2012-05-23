@@ -17,6 +17,7 @@ extern(C) int system(char* path);
 
 struct FileInfo {
   char[] path;
+  char[] implementationPath;
   char[] name;
 }
 
@@ -48,12 +49,12 @@ int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
   }
 
   char[] compileString = "ldc -c " ~ path ~ " -of" ~ outputPath ~ " ";
-
   foreach(importPath; importPaths) {
     compileString ~= "-I" ~ importPath ~ " ";
   }
 
   compileString ~= "\0";
+  Stdout(compileString).newline;
   return system(compileString.ptr);
 }
 
@@ -66,6 +67,36 @@ ModuleNode parse(char[] path) {
   auto ast    = parser.parse(logger);
 
   return ast;
+}
+
+void findImplementation(ref FileInfo fileInfo, char[][] importPaths) {
+  if (fileInfo.path[$-2..$] == ".d") {
+    fileInfo.implementationPath = fileInfo.path;
+    return;
+  }
+
+  char[] imp = fileInfo.name;
+  imp = imp.replace('.', '/');
+  imp ~= ".d";
+
+  // Determine location of .d or .di
+
+  bool fileExists = false;
+  char[] testPath = "";
+  foreach(path; importPaths) {
+    testPath = path ~ "/" ~ imp;
+    if (Path.exists(testPath)) {
+      fileExists = true;
+      break;
+    }
+  }
+
+  if (!fileExists) {
+    Stdout("Cannot find file for import ")(imp).newline;
+  }
+  else {
+    fileInfo.implementationPath = testPath;
+  }
 }
 
 void parseFile(char[] filePath, char[][] importPaths) {
@@ -136,7 +167,9 @@ int main(char[][] args) {
     // Compile
     p = (cast(double)idx+1) / cast(double)_done.length;
     Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
-    compileFile(file.path, file.name, importPaths);
+    findImplementation(_done[idx], importPaths);
+    file = _done[idx];
+    compileFile(file.implementationPath, file.name, importPaths);
   }
 
   link("");
