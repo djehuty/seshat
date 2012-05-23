@@ -96,13 +96,14 @@ void findImplementation(ref FileInfo fileInfo, char[][] importPaths) {
   }
   else {
     // We need to parse the imports for this file as well
+    Stdout("Found implementation ")(testPath).newline;
     fileInfo.implementationPath = testPath;
-    parseFile(testPath, importPaths);
+    parseFile(testPath, importPaths, true);
   }
 }
 
-void parseFile(char[] filePath, char[][] importPaths) {
-  if (hasDone(filePath)) {
+void parseFile(char[] filePath, char[][] importPaths, bool forceParsing = false) {
+  if (!forceParsing && hasDone(filePath)) {
     return;
   }
 
@@ -118,6 +119,7 @@ void parseFile(char[] filePath, char[][] importPaths) {
 
   // Compile
   foreach(importNode; ast.imports) {
+    Stdout("Found import ")(importNode.moduleName)(".").newline;
     char[] imp = importNode.moduleName;
     // Convert to path
     imp = imp.replace('.', '/');
