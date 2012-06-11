@@ -1,1 +1,1 @@
-ldc main.d ../maat/lex/*.d ../maat/syntax/*.d ../maat/logger.d ../maat/ast/*.d -I../maat
+ldc main.d ../maat/lex/*.d ../maat/syntax/*.d ../maat/logger.d ../maat/ast/*.d -ofseshat -I../maat
