@@ -33,7 +33,7 @@ bool hasDone(char[] path) {
 }
 
 int link(char[] path) {
-  return system("ldc .seshat-build-cache/*.o -ofblah");
+  return system(("ldc .seshat-build-cache/*.o -of" ~ path ~ "\0").ptr);
 }
 
 int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
@@ -161,7 +161,19 @@ int main(char[][] args) {
     return -1;
   }
 
-  char[][] importPaths = args[2..$];
+  char[][] importPaths = [];
+  char[] outputPath = "./output";
+
+  foreach(arg; args[2..$]) {
+    if (arg.length > 2 && arg[0..2] == "-o") {
+      outputPath = arg[2..$];
+    }
+    else {
+      importPaths ~= arg;
+    }
+  }
+
+  importPaths ~= ".";
 
   parseFile(args[1], importPaths);
 
@@ -180,7 +192,7 @@ int main(char[][] args) {
     compileFile(file.implementationPath, file.name, importPaths);
   }
 
-  link("");
+  link(outputPath);
 
   return 0;
 }
