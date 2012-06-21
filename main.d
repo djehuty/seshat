@@ -164,6 +164,14 @@ int main(char[][] args) {
   char[][] importPaths = [];
   char[] outputPath = "./output";
 
+  // Set default output path to name of main source file minus extension
+  foreach(size_t idx, chr; args[1]) {
+    if (chr == '.') {
+      outputPath = "./" ~ args[1][0..idx];
+    }
+  }
+
+  // Parse arguments for certain flags
   foreach(arg; args[2..$]) {
     if (arg.length > 2 && arg[0..2] == "-o") {
       outputPath = arg[2..$];
