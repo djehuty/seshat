@@ -197,7 +197,12 @@ int main(char[][] args) {
   foreach(size_t idx, file; _done) {
     p = (cast(double)idx+1) / (cast(double)_done.length+1);
     Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
-    compileFile(file.implementationPath, file.name, importPaths);
+    if (file.implementationPath !is null && file.implementationPath != "") {
+      if (compileFile(file.implementationPath, file.name, importPaths) != 0) {
+        Stdout("Errors reported. Cancelling build.").newline;
+        return -1;
+      }
+    }
   }
 
   link(outputPath);
