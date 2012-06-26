@@ -36,7 +36,7 @@ int link(char[] path) {
   return system(("ldc .seshat-build-cache/*.o -of" ~ path ~ "\0").ptr);
 }
 
-int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
+int compileFile(char[] path, char[] moduleName, char[][] importPaths, char[] flags) {
   char[] outputPath = ".seshat-build-cache/" ~ moduleName.replace('.', '-') ~ ".o";
 
   if (Path.exists(outputPath)) {
@@ -48,7 +48,7 @@ int compileFile(char[] path, char[] moduleName, char[][] importPaths) {
     }
   }
 
-  char[] compileString = "ldc -c " ~ path ~ " -of" ~ outputPath ~ " ";
+  char[] compileString = "ldc -c " ~ path ~ " -of" ~ outputPath ~ " " ~ flags;
   foreach(importPath; importPaths) {
     compileString ~= "-I" ~ importPath ~ " ";
   }
@@ -163,6 +163,7 @@ int main(char[][] args) {
 
   char[][] importPaths = [];
   char[] outputPath = "./output";
+  char[] flags = "";
 
   // Set default output path to name of main source file minus extension
   foreach(size_t idx, chr; args[1]) {
@@ -175,6 +176,9 @@ int main(char[][] args) {
   foreach(arg; args[2..$]) {
     if (arg.length > 2 && arg[0..2] == "-o") {
       outputPath = arg[2..$];
+    }
+    else if (arg.length == 2 && arg == "-d") {
+      flags ~= "-g ";
     }
     else {
       importPaths ~= arg;
@@ -198,7 +202,7 @@ int main(char[][] args) {
     p = (cast(double)idx+1) / (cast(double)_done.length+1);
     Stdout("[")(cast(int)(p*100))("%] - ")(file.name).newline;
     if (file.implementationPath !is null && file.implementationPath != "") {
-      if (compileFile(file.implementationPath, file.name, importPaths) != 0) {
+      if (compileFile(file.implementationPath, file.name, importPaths, flags) != 0) {
         Stdout("Errors reported. Cancelling build.").newline;
         return -1;
       }
